@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>集合写真人数配置ツール ver4.9 2026-03-19</title>
+<title>集合写真人数配置ツール ver4.91 2026-03-20</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -289,7 +289,7 @@
 <body>
 
 <header>
-  <h1>集合写真人数配置ツール ver4.9 2026-03-19</h1>
+  <h1>集合写真人数配置ツール ver4.91 2026-03-20</h1>
   <div style="margin-left:auto;font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);text-align:right;line-height:1.6;white-space:nowrap;">
     <div style="font-size:0.62rem;color:var(--muted);margin-bottom:0.2rem;">入力データはサーバーに送信されず、ブラウザ内のみで処理されます。</div>
     <div style="font-size:0.62rem;color:var(--muted);margin-bottom:0.2rem;">本ツールの使用により生じた損害について、作者は一切の責任を負いません。自己責任でご利用ください。</div>
@@ -1224,7 +1224,7 @@ drawDiagram();
           'Authorization': `Bearer ${SUPABASE_KEY}`,
           'Prefer': 'return=minimal'
         },
-        body: JSON.stringify({ created_at: new Date().toISOString() })
+        body: '{}'
       });
     } catch(e) {}
   }
