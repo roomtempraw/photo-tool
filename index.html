@@ -1208,11 +1208,10 @@ drawDiagram();
 
   // ── Supabase 利用カウント送信 ──
   const SUPABASE_URL = 'https://uidhhufcgmpicubawhgj.supabase.co';
-  const SUPABASE_KEY = 'sb_publishable_sVOts-kHJB8-bXuNDf8ehw_iSb8gFNX';
+  const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpZGhodWZjZ21waWN1YmF3aGdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NTU5MjgsImV4cCI6MjA4OTUzMTkyOH0.V4h3ugYcSt5uqtcg3oNYt4XLcNDWcvyIFsHWEsxCCZk';
   let _lastSentAt = 0;
 
   async function sendUsageCount(source) {
-    // 3秒以内の連続送信は無視（入力のたびに送らないよう制限）
     const now = Date.now();
     if (now - _lastSentAt < 3000) return;
     _lastSentAt = now;
@@ -1225,7 +1224,7 @@ drawDiagram();
           'Authorization': `Bearer ${SUPABASE_KEY}`,
           'Prefer': 'return=minimal'
         },
-        body: JSON.stringify({ source })
+        body: JSON.stringify({ source: source })
       });
     } catch (e) { /* 送信失敗は無視 */ }
   }
