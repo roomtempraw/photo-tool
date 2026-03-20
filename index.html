@@ -291,7 +291,9 @@
 <header>
   <h1>集合写真人数配置ツール ver4.9 2026-03-19</h1>
   <div style="margin-left:auto;font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);text-align:right;line-height:1.6;white-space:nowrap;">
-    <div style="font-size:0.75rem;color:var(--text);font-weight:500;">© 2026 koiwazurai. All rights reserved.</div>
+    <div style="font-size:0.62rem;color:var(--muted);margin-bottom:0.2rem;">入力データはサーバーに送信されず、ブラウザ内のみで処理されます。</div>
+    <div style="font-size:0.62rem;color:var(--muted);margin-bottom:0.2rem;">本ツールの使用により生じた損害について、作者は一切の責任を負いません。自己責任でご利用ください。</div>
+    <div style="font-size:0.75rem;color:var(--muted);">© 2026 koiwazurai. All rights reserved.</div>
   </div>
 </header>
 
@@ -1201,6 +1203,31 @@ drawDiagram();
     document.getElementById('s-total').innerHTML = totalLabel;
 
     renderGrid(stageInfo, studentCount, parentCount);
+    sendUsageCount('pc');
+  }
+
+  // ── Supabase 利用カウント送信 ──
+  const SUPABASE_URL = 'https://uidhhufcgmpicubawhgj.supabase.co';
+  const SUPABASE_KEY = 'sb_publishable_sVOts-kHJB8-bXuNDf8ehw_iSb8gFNX';
+  let _lastSentAt = 0;
+
+  async function sendUsageCount(source) {
+    // 3秒以内の連続送信は無視（入力のたびに送らないよう制限）
+    const now = Date.now();
+    if (now - _lastSentAt < 3000) return;
+    _lastSentAt = now;
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/usage_log`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`,
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({ source })
+      });
+    } catch (e) { /* 送信失敗は無視 */ }
   }
 
 
