@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>集合写真ツール mobile ver1.0</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --red: #cc0000;
+  --red-light: rgba(204,0,0,0.08);
+  --blue: #0050c8;
+  --green: #007a00;
+  --bg: #f7f7f7;
+  --card: #ffffff;
+  --border: #e0e0e0;
+  --text: #111111;
+  --muted: #888888;
+  --tab-h: 56px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans JP', sans-serif;
+  font-weight: 300;
+  min-height: 100dvh;
+  padding-bottom: calc(var(--tab-h) + var(--safe-bottom));
+}
+
+/* ── ヘッダー ── */
+.app-header {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 0.9rem 1.2rem 0.7rem;
+  position: sticky; top: 0; z-index: 100;
+}
+.app-header h1 {
+  font-size: 1.05rem; font-weight: 700; color: var(--red);
+  font-family: 'Noto Sans JP', sans-serif; letter-spacing: 0.02em;
+}
+.app-header .ver {
+  font-size: 0.62rem; color: var(--muted);
+  font-family: 'DM Mono', monospace; margin-top: 1px;
+}
+
+/* ── ボトムタブ ── */
+.tab-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  height: calc(var(--tab-h) + var(--safe-bottom));
+  background: #fff; border-top: 1px solid var(--border);
+  display: flex; z-index: 200;
+  padding-bottom: var(--safe-bottom);
+}
+.tab-btn {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px; border: none; background: none;
+  cursor: pointer; padding: 6px 0;
+  color: var(--muted); transition: color 0.15s;
+  font-family: 'Noto Sans JP', sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+.tab-btn.active { color: var(--red); }
+.tab-btn svg { width: 22px; height: 22px; }
+.tab-btn span { font-size: 0.62rem; font-weight: 500; }
+
+/* ── ページ切り替え ── */
+.page { display: none; padding: 1rem; }
+.page.active { display: block; }
+
+/* ── カード ── */
+.card {
+  background: var(--card); border-radius: 12px;
+  border: 1px solid var(--border);
+  padding: 1rem 1.1rem; margin-bottom: 0.8rem;
+}
+.card-title {
+  font-size: 0.65rem; letter-spacing: 0.12em; color: var(--muted);
+  text-transform: uppercase; font-family: 'DM Mono', monospace;
+  margin-bottom: 0.7rem;
+}
+
+/* ── 入力フィールド ── */
+.field { margin-bottom: 0.9rem; }
+.field:last-child { margin-bottom: 0; }
+.field label {
+  display: block; font-size: 0.7rem; color: var(--muted);
+  font-family: 'DM Mono', monospace; letter-spacing: 0.1em;
+  text-transform: uppercase; margin-bottom: 0.3rem;
+}
+.field input[type="number"],
+.field input[type="text"] {
+  width: 100%; background: #f5f5f5; border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 0.7rem 0.9rem;
+  font-size: 1.3rem; font-weight: 500;
+  font-family: 'DM Mono', monospace; color: var(--text);
+  -moz-appearance: textfield; transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+.field input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; }
+.field input:focus { outline: none; border-color: var(--red); background: #fff; }
+
+/* ── セグメントコントロール ── */
+.seg-ctrl {
+  display: flex; gap: 0.4rem; flex-wrap: wrap;
+}
+.seg-btn {
+  flex: 1; min-width: 0;
+  background: #f0f0f0; border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 0.5rem 0.4rem;
+  font-size: 0.78rem; font-family: 'Noto Sans JP', sans-serif;
+  color: var(--muted); cursor: pointer; text-align: center;
+  transition: all 0.15s; -webkit-tap-highlight-color: transparent;
+}
+.seg-btn.active {
+  background: var(--red-light); border-color: var(--red);
+  color: var(--red); font-weight: 500;
+}
+
+/* ── 配置結果グリッド ── */
+.result-grid {
+  display: grid; gap: 0.5rem; margin-top: 0.5rem;
+}
+.stage-row {
+  background: #f9f9f9; border-radius: 8px;
+  border: 1px solid var(--border);
+  padding: 0.6rem 0.9rem;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.stage-row .stage-label {
+  font-size: 0.75rem; font-weight: 500; color: var(--text);
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.stage-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--red); flex-shrink: 0;
+}
+.stage-dot.parent { background: #333; }
+.stage-row .stage-val {
+  font-family: 'DM Mono', monospace; font-size: 0.8rem;
+  font-weight: 500; color: var(--muted); text-align: right;
+  line-height: 1.5;
+}
+.stage-row.total-row {
+  background: #fff; border-color: var(--red);
+  border-width: 1.5px;
+}
+.stage-row.total-row .stage-label { color: var(--red); font-weight: 700; }
+.stage-row.total-row .stage-val { color: var(--red); font-size: 1rem; }
+
+/* ── ひな壇計算 ── */
+.hina-section-title {
+  font-size: 0.7rem; font-weight: 700; letter-spacing: 0.08em;
+  padding-bottom: 0.5rem; margin-bottom: 0.8rem;
+  border-bottom: 2px solid var(--red);
+  font-family: 'DM Mono', monospace;
+}
+.hina-section-title.blue { border-color: var(--blue); }
+.hina-section-title.green { border-color: var(--green); }
+
+.hina-input-row {
+  display: flex; align-items: center; gap: 0.6rem;
+  margin-bottom: 0.7rem;
+}
+.hina-input-row:last-of-type { margin-bottom: 0; }
+.hina-input-wrap { display: flex; flex-direction: column; gap: 0.2rem; }
+.hina-input-wrap label {
+  font-size: 0.58rem; color: var(--muted);
+  font-family: 'DM Mono', monospace; letter-spacing: 0.08em; text-transform: uppercase;
+}
+.hina-input-wrap input {
+  width: 72px; background: #f5f5f5; border: 1.5px solid var(--border);
+  border-radius: 8px; padding: 0.45rem 0.6rem;
+  font-family: 'DM Mono', monospace; font-size: 1.2rem; font-weight: 500;
+  color: var(--text); -moz-appearance: textfield; -webkit-appearance: none;
+  transition: border-color 0.2s;
+}
+.hina-input-wrap input::-webkit-inner-spin-button { -webkit-appearance: none; }
+.hina-input-wrap input:focus { outline: none; border-color: var(--red); background: #fff; }
+.hina-arrow { color: var(--muted); font-size: 1rem; flex-shrink: 0; }
+.hina-result { display: flex; gap: 0.4rem; flex-wrap: wrap; flex: 1; }
+.hina-chip {
+  background: #f5f5f5; border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.2rem 0.5rem;
+  display: flex; flex-direction: column;
+}
+.hina-chip .chip-label { font-size: 0.55rem; color: var(--muted); }
+.hina-chip .chip-val {
+  font-family: 'DM Mono', monospace; font-size: 0.85rem; font-weight: 600;
+  color: var(--text);
+}
+
+/* ── 合計カード ── */
+.total-chips {
+  display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.6rem;
+}
+.total-chip {
+  border-radius: 8px; padding: 0.4rem 0.8rem;
+  display: flex; flex-direction: column; align-items: center;
+  border: 2px solid var(--border); flex: 1; min-width: 80px;
+}
+.total-chip .tc-label { font-size: 0.6rem; color: var(--muted); margin-bottom: 0.1rem; }
+.total-chip .tc-val {
+  font-family: 'DM Mono', monospace; font-size: 1.1rem; font-weight: 700;
+}
+.total-chip.red  { border-color: var(--red);   }
+.total-chip.red .tc-val  { color: var(--red);   }
+.total-chip.blue { border-color: var(--blue);  }
+.total-chip.blue .tc-val { color: var(--blue);  }
+.total-chip.green{ border-color: var(--green); }
+.total-chip.green .tc-val{ color: var(--green); }
+.total-chip.dark { border-color: #333; }
+.total-chip.dark .tc-val { color: #333; }
+
+/* トグル */
+.toggle-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.1rem 0;
+}
+.toggle-label { font-size: 0.82rem; line-height: 1.5; }
+.toggle { position: relative; width: 44px; height: 26px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-track {
+  position: absolute; inset: 0; background: #ccc;
+  border-radius: 26px; cursor: pointer; transition: background 0.2s;
+}
+.toggle-track::after {
+  content: ''; position: absolute; width: 20px; height: 20px;
+  left: 3px; top: 3px; background: #fff; border-radius: 50%;
+  transition: transform 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+.toggle input:checked + .toggle-track { background: var(--red); }
+.toggle input:checked + .toggle-track::after { transform: translateX(18px); }
+
+.empty-hint {
+  text-align: center; color: var(--muted);
+  font-size: 0.85rem; padding: 2rem 1rem; line-height: 2;
+}
+.empty-hint .big { font-size: 2rem; display: block; margin-bottom: 0.5rem; color: #ddd; }
+
+.section-gap { height: 0.4rem; }
+
+/* ── 座席グリッド ── */
+.seat-grid-outer {
+  width: 100%; overflow: hidden;
+  padding: 0.3rem 0 0.5rem;
+  display: flex; flex-direction: column; align-items: center;
+}
+.seat-grid-scaler {
+  transform-origin: top center;
+  display: flex; flex-direction: column; align-items: center;
+}
+.seat-grid { display: flex; flex-direction: column; gap: 5px; align-items: center; }
+.seat-row  { display: flex; gap: 4px; justify-content: center; }
+.seat {
+  width: 22px; height: 22px; border-radius: 3px;
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Mono', monospace; font-size: 7px; font-weight: 600;
+  flex-shrink: 0;
+}
+.seat.stu  { background: rgba(204,0,0,0.10); border: 1px solid #cc0000; color: #cc0000; }
+.seat.stf  { background: rgba(0,122,0,0.12); border: 1.5px solid #007a00; color: #007a00; }
+.seat.par  { background: rgba(0,0,0,0.06);   border: 1px solid #333;     color: #333; }
+.seat.emp  { background: rgba(0,80,200,0.10); border: 1px solid #0050c8; color: #0050c8; }
+.grid-camera {
+  text-align: center; font-size: 0.65rem; font-family: 'DM Mono', monospace;
+  color: #007a00; border: 1.5px solid #007a00; border-radius: 5px;
+  padding: 0.15rem 0.8rem; display: inline-block; margin-top: 4px;
+}
+.grid-legend {
+  display: flex; gap: 0.7rem; flex-wrap: wrap;
+  margin-top: 0.6rem; font-size: 0.65rem; color: var(--muted);
+}
+.grid-legend-item { display: flex; align-items: center; gap: 3px; }
+.legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+/* ── 増減ボタン ── */
+.adj-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0.5rem 0; border-bottom: 1px solid var(--border);
+}
+.adj-row:last-child { border-bottom: none; padding-bottom: 0; }
+.adj-label { font-size: 0.8rem; font-weight: 500; color: var(--text); }
+.adj-sub   { font-size: 0.65rem; color: var(--muted); margin-top: 1px; }
+.adj-ctrl  { display: flex; align-items: center; gap: 0.5rem; }
+.adj-btn {
+  width: 36px; height: 36px; border-radius: 8px;
+  border: 1.5px solid var(--border); background: #f5f5f5;
+  font-size: 1.1rem; font-weight: 500; color: var(--text);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; -webkit-tap-highlight-color: transparent;
+  transition: background 0.1s;
+}
+.adj-btn:active { background: #e0e0e0; }
+.adj-btn.red   { border-color: var(--red);   color: var(--red); }
+.adj-btn.green { border-color: var(--green); color: var(--green); }
+.adj-val {
+  min-width: 36px; text-align: center;
+  font-family: 'DM Mono', monospace; font-size: 1rem; font-weight: 600;
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>集合写真ツール</h1>
+  <div class="ver">mobile ver1.1 · 2026-03-20</div>
+  <div style="font-size:0.58rem;color:var(--muted);margin-top:0.3rem;line-height:1.6;">
+    入力データはサーバーに送信されず、ブラウザ内のみで処理されます。<br>
+    本ツールの使用により生じた損害について作者は一切の責任を負いません。自己責任でご利用ください。
+  </div>
+  <div style="font-size:0.65rem;color:var(--muted);margin-top:0.3rem;">© 2026 koiwazurai. All rights reserved.</div>
+</header>
+
+<!-- ページ：配置計算 -->
+<div class="page active" id="page-layout">
+
+  <!-- 基本情報 -->
+  <div class="card">
+    <div class="card-title">基本情報</div>
+    <div class="field">
+      <label>生徒人数</label>
+      <input type="number" id="m-total" min="1" placeholder="0" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label>段数</label>
+      <input type="number" id="m-stages" min="1" max="10" placeholder="0" inputmode="numeric">
+    </div>
+    <div class="field">
+      <label>職員数</label>
+      <input type="number" id="m-staff" min="0" placeholder="0" inputmode="numeric">
+    </div>
+  </div>
+
+  <!-- 保護者 -->
+  <div class="card">
+    <div class="card-title">保護者</div>
+    <div class="seg-ctrl" style="margin-bottom:0.7rem;">
+      <button class="seg-btn active" data-pmode="auto" onclick="mSelectPmode(this)">1.5倍自動</button>
+      <button class="seg-btn" data-pmode="manual" onclick="mSelectPmode(this)">人数指定</button>
+      <button class="seg-btn" data-pmode="none" onclick="mSelectPmode(this)">なし</button>
+    </div>
+    <div id="m-parent-wrap" style="display:none;">
+      <div class="field" style="margin-bottom:0;">
+        <label>保護者人数</label>
+        <input type="number" id="m-parent" min="0" placeholder="0" inputmode="numeric">
+      </div>
+    </div>
+  </div>
+
+  <!-- 職員位置 -->
+  <div class="card">
+    <div class="card-title">職員の位置（1段目内）</div>
+    <div class="seg-ctrl">
+      <button class="seg-btn active" data-pos="left"   onclick="mSelectPos(this)">左端</button>
+      <button class="seg-btn"        data-pos="right"  onclick="mSelectPos(this)">右端</button>
+      <button class="seg-btn"        data-pos="sides"  onclick="mSelectPos(this)">両サイド</button>
+      <button class="seg-btn"        data-pos="center" onclick="mSelectPos(this)">真ん中</button>
+    </div>
+    <div class="section-gap"></div>
+    <div class="toggle-row" style="margin-top:0.7rem;">
+      <span class="toggle-label">先生の後ろに生徒を配置しない</span>
+      <div class="toggle">
+        <input type="checkbox" id="m-no-behind" onchange="mRender()">
+        <span class="toggle-track" onclick="document.getElementById('m-no-behind').click()"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 配置結果 -->
+  <div class="card">
+    <div class="card-title">配置結果</div>
+    <div id="m-result">
+      <div class="empty-hint">
+        <span class="big">□□□</span>
+        人数を入力すると表示されます
+      </div>
+    </div>
+  </div>
+
+  <!-- 座席グリッド -->
+  <div class="card" id="m-grid-card" style="display:none;">
+    <div class="card-title">並び図</div>
+    <div class="seat-grid-outer" id="m-grid-outer">
+      <div class="seat-grid-scaler" id="m-grid-scaler">
+        <div class="seat-grid" id="m-seat-grid"></div>
+        <div style="text-align:center;margin-top:6px;">
+          <span class="grid-camera">▶ カメラ ◀</span>
+        </div>
+      </div>
+    </div>
+    <div class="grid-legend">
+      <div class="grid-legend-item"><div class="legend-dot" style="background:rgba(204,0,0,0.10);border:1px solid #cc0000;"></div>生徒</div>
+      <div class="grid-legend-item"><div class="legend-dot" style="background:rgba(0,122,0,0.12);border:1.5px solid #007a00;"></div>職員</div>
+      <div class="grid-legend-item"><div class="legend-dot" style="background:rgba(0,0,0,0.06);border:1px solid #333;"></div>保護者</div>
+      <div class="grid-legend-item"><div class="legend-dot" style="background:rgba(0,80,200,0.10);border:1px solid #0050c8;"></div>空き</div>
+    </div>
+  </div>
+
+  <!-- 増減調整 -->
+  <div class="card" id="m-adj-card" style="display:none;">
+    <div class="card-title">各段の増減調整</div>
+    <div id="m-adj-rows"></div>
+  </div>
+
+</div>
+
+<!-- ページ：ひな壇計算 -->
+<div class="page" id="page-hina">
+
+  <!-- 1段タイプ -->
+  <div class="card">
+    <div class="hina-section-title">1段タイプ</div>
+
+    <div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.5rem;font-family:'DM Mono',monospace;">① セット目</div>
+    <div class="hina-input-row">
+      <div class="hina-input-wrap">
+        <label>人数</label>
+        <input type="number" id="m-h1a-people" min="0" placeholder="0" inputmode="numeric" oninput="mCalcH1a()">
+      </div>
+      <span class="hina-arrow">→</span>
+      <div class="hina-result" id="m-h1a-people-result"></div>
+    </div>
+    <div class="hina-input-row">
+      <div class="hina-input-wrap">
+        <label>脚数</label>
+        <input type="number" id="m-h1a-stands" min="0" placeholder="0" inputmode="numeric" oninput="mCalcH1a()">
+      </div>
+      <span class="hina-arrow">→</span>
+      <div class="hina-result" id="m-h1a-stands-result"></div>
+    </div>
+
+    <div style="font-size:0.65rem;color:var(--muted);margin:0.8rem 0 0.5rem;font-family:'DM Mono',monospace;opacity:0.6;">② セット目</div>
+    <div class="hina-input-row">
+      <div class="hina-input-wrap">
+        <label>人数</label>
+        <input type="number" id="m-h1b-people" min="0" placeholder="0" inputmode="numeric" oninput="mCalcH1b()">
+      </div>
+      <span class="hina-arrow">→</span>
+      <div class="hina-result" id="m-h1b-people-result"></div>
+    </div>
+    <div class="hina-input-row">
+      <div class="hina-input-wrap">
+        <label>脚数</label>
+        <input type="number" id="m-h1b-stands" min="0" placeholder="0" inputmode="numeric" oninput="mCalcH1b()">
+      </div>
+      <span class="hina-arrow">→</span>
+      <div class="hina-result" id="m-h1b-stands-result"></div>
+    </div>
+  </div>
+
+  <!-- 2段タイプ -->
+  <div class="card">
+    <div class="hina-section-title blue">2段タイプ</div>
+
+    <div style="font-size:0.65rem;color:var(--muted);margin-bottom:0.5rem;font-family:'DM Mono',monospace;">① セット目</div>
+    <div class="hina-input-row">
+      <div class="hina-input-wrap">
+        <label>人数</label>
+        <input type="number" id="m-h2a-people" min="0" placeholder="0" inputmode="numeric" oninput="mCalcH2a()">
+      </div>
+      <span class="hina-arrow">→</span>
+      <div class="hina-result" id="m-h2a-people-result"></div>
+    </div>
+    <div class="hina-input-row">
+      <div class="hina-input-wrap">
+        <label>脚数</label>
+        <input type="number" id="m-h2a-stands" min="0" placeholder="0" inputmode="numeric" oninput="mCalcH2a()">
+      </div>
+      <span class="hina-arrow">→</span>
+      <div class="hina-result" id="m-h2a-stands-result"></div>
+    </div>
+
+    <div style="font-size:0.65rem;color:var(--muted);margin:0.8rem 0 0.5rem;font-family:'DM Mono',monospace;opacity:0.6;">② セット目</div>
+    <div class="hina-input-row">
+      <div class="hina-input-wrap">
+        <label>人数</label>
+        <input type="number" id="m-h2b-people" min="0" placeholder="0" inputmode="numeric" oninput="mCalcH2b()">
+      </div>
+      <span class="hina-arrow">→</span>
+      <div class="hina-result" id="m-h2b-people-result"></div>
+    </div>
+    <div class="hina-input-row">
+      <div class="hina-input-wrap">
+        <label>脚数</label>
+        <input type="number" id="m-h2b-stands" min="0" placeholder="0" inputmode="numeric" oninput="mCalcH2b()">
+      </div>
+      <span class="hina-arrow">→</span>
+      <div class="hina-result" id="m-h2b-stands-result"></div>
+    </div>
+  </div>
+
+  <!-- 3段タイプ -->
+  <div class="card">
+    <div class="hina-section-title green">3段用・追加枠</div>
+    <div class="hina-input-row">
+      <div class="hina-input-wrap">
+        <label>人数</label>
+        <input type="number" id="m-h3-people" min="0" placeholder="0" inputmode="numeric" oninput="mCalcH3()">
+      </div>
+      <span class="hina-arrow">→</span>
+      <div class="hina-result" id="m-h3-people-result"></div>
+    </div>
+    <div class="hina-input-row">
+      <div class="hina-input-wrap">
+        <label>脚数</label>
+        <input type="number" id="m-h3-stands" min="0" placeholder="0" inputmode="numeric" oninput="mCalcH3()">
+      </div>
+      <span class="hina-arrow">→</span>
+      <div class="hina-result" id="m-h3-stands-result"></div>
+    </div>
+  </div>
+
+  <!-- 合計 -->
+  <div class="card">
+    <div class="card-title">合計</div>
+    <div class="total-chips" id="m-total-chips">
+      <div class="total-chip dark"><div class="tc-label">入力してください</div><div class="tc-val">—</div></div>
+    </div>
+  </div>
+
+  <!-- 計算式メモ -->
+  <div class="card" style="background:#f9f9f9;">
+    <div style="font-size:0.72rem;color:var(--muted);line-height:2.2;font-family:'DM Mono',monospace;">
+      N脚 → 板/段 = 2N−1枚<br>
+      大人 2人/枚<br>
+      2段：板×2　3段：板×3
+    </div>
+  </div>
+
+</div>
+
+<!-- ボトムタブ -->
+<nav class="tab-bar">
+  <button class="tab-btn active" id="tab-layout" onclick="switchTab('layout')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="9" x2="9" y2="21"/>
+    </svg>
+    <span>配置計算</span>
+  </button>
+  <button class="tab-btn" id="tab-hina" onclick="switchTab('hina')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 20h18M6 20V10M10 20V6M14 20V10M18 20V4"/>
+    </svg>
+    <span>ひな壇計算</span>
+  </button>
+</nav>
+
+<script>
+// ── タブ切り替え ──
+function switchTab(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
+// ── 配置計算 ──
+let mStaffPos   = 'left';
+let mParentMode = 'auto';
+let mAdjustments    = {};
+let mParAdjustments = {};
+let mEmptyAdjust    = 1;
+
+function mSelectPos(btn) {
+  document.querySelectorAll('[data-pos]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  mStaffPos = btn.dataset.pos;
+  mRender();
+}
+
+function mSelectPmode(btn) {
+  document.querySelectorAll('[data-pmode]').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  mParentMode = btn.dataset.pmode;
+  document.getElementById('m-parent-wrap').style.display = mParentMode === 'manual' ? '' : 'none';
+  mAdjustments = {}; mParAdjustments = {};
+  mRender();
+}
+
+function mAdjust(idx, delta) {
+  mAdjustments[idx] = (mAdjustments[idx] || 0) + delta;
+  mRender();
+}
+
+function mAdjustPar(idx, delta) {
+  mParAdjustments[idx] = (mParAdjustments[idx] || 0) + delta;
+  mRender();
+}
+
+function mAdjustEmpty(delta) {
+  mEmptyAdjust = Math.max(1, mEmptyAdjust + delta);
+  mRender();
+}
+
+function calcStages(total, n) {
+  if (total <= 0 || n <= 0) return [];
+  const base = Math.floor(total / n);
+  const rem  = total % n;
+  return Array.from({ length: n }, (_, i) => base + (i < rem ? 1 : 0));
+}
+
+['m-total','m-stages','m-staff','m-parent'].forEach(id => {
+  const el = document.getElementById(id);
+  if (el) el.addEventListener('input', () => { mAdjustments = {}; mParAdjustments = {}; mEmptyAdjust = 1; mRender(); });
+});
+
+function mRender() {
+  const stuCount  = parseInt(document.getElementById('m-total').value)  || 0;
+  const numStages = Math.max(1, Math.min(10, parseInt(document.getElementById('m-stages').value) || 2));
+  const staffCnt  = Math.max(0, parseInt(document.getElementById('m-staff').value) || 0);
+  const result    = document.getElementById('m-result');
+
+  if (stuCount <= 0) {
+    result.innerHTML = `<div class="empty-hint"><span class="big">□□□</span>人数を入力すると表示されます</div>`;
+    document.getElementById('m-grid-card').style.display = 'none';
+    document.getElementById('m-adj-card').style.display  = 'none';
+    return;
+  }
+
+  let parentCount = 0;
+  if      (mParentMode === 'auto')   parentCount = Math.ceil(stuCount * 1.5);
+  else if (mParentMode === 'manual') parentCount = Math.max(0, parseInt(document.getElementById('m-parent').value) || 0);
+
+  const stuPlusStaff = stuCount + staffCnt;
+  const grandTotal   = stuPlusStaff + parentCount;
+  const sizes        = calcStages(grandTotal, numStages);
+
+  let stuRemain = stuPlusStaff, parRemain = parentCount;
+  let stageInfo = sizes.map((slot, i) => {
+    if (i < 1) {
+      const stu = Math.min(slot, stuRemain); stuRemain -= stu;
+      return { idx: i, stuCount: stu, parCount: 0 };
+    } else {
+      const stu = Math.min(slot, stuRemain); stuRemain -= stu;
+      const par = Math.min(slot - stu, parRemain); parRemain -= par;
+      return { idx: i, stuCount: stu, parCount: par };
+    }
+  });
+
+  // 生徒増減適用
+  Object.entries(mAdjustments).forEach(([idxStr, delta]) => {
+    const i    = parseInt(idxStr);
+    const next = i + 1;
+    if (i >= stageInfo.length) return;
+    if (delta > 0 && next < stageInfo.length) {
+      const move = Math.min(delta, stageInfo[next].stuCount);
+      stageInfo[i].stuCount    += move;
+      stageInfo[next].stuCount -= move;
+    } else if (delta < 0) {
+      const move = Math.min(-delta, stageInfo[i].stuCount - (i===0 ? staffCnt : 0));
+      if (move > 0 && next < stageInfo.length) {
+        stageInfo[i].stuCount    -= move;
+        stageInfo[next].stuCount += move;
+      }
+    }
+  });
+
+  // 保護者増減適用
+  Object.entries(mParAdjustments).forEach(([idxStr, delta]) => {
+    const i     = parseInt(idxStr);
+    const last  = stageInfo.length - 1;
+    const other = (i === last) ? i - 1 : last;
+    if (i >= stageInfo.length || other < 0 || other === i || delta === 0) return;
+    if (delta > 0) {
+      const move = Math.min(delta, stageInfo[other].parCount);
+      stageInfo[i].parCount     += move;
+      stageInfo[other].parCount -= move;
+    } else {
+      const move = Math.min(-delta, stageInfo[i].parCount);
+      stageInfo[i].parCount     -= move;
+      stageInfo[other].parCount += move;
+    }
+  });
+
+  // ── 配置結果テキスト ──
+  let html = '<div class="result-grid">';
+  [...stageInfo].reverse().forEach(({ idx, stuCount: sc, parCount: pc }) => {
+    const stuOnly = sc - (idx === 0 ? staffCnt : 0);
+    const dotClass = pc > 0 && sc === 0 ? 'stage-dot parent' : 'stage-dot';
+    let valLines = [];
+    if (idx === 0 && staffCnt > 0) {
+      if (staffCnt > 0) valLines.push(`職員 ${staffCnt}名`);
+      if (stuOnly > 0)  valLines.push(`生徒 ${stuOnly}名`);
+    } else if (pc > 0 && sc > 0) {
+      valLines.push(`生徒 ${sc}名`);
+      valLines.push(`保護者 ${pc}名`);
+    } else if (pc > 0) {
+      valLines.push(`保護者 ${pc}名`);
+    } else {
+      valLines.push(`生徒 ${stuOnly}名`);
+    }
+    html += `<div class="stage-row">
+      <div class="stage-label"><span class="${dotClass}"></span>${idx + 1}段目</div>
+      <div class="stage-val">${valLines.join('<br>')}</div>
+    </div>`;
+  });
+  const totalLabel = parentCount > 0
+    ? `生徒${stuCount} 職員${staffCnt} 保護者${parentCount}<br>= ${grandTotal}名`
+    : `生徒${stuCount} 職員${staffCnt}<br>= ${grandTotal}名`;
+  html += `<div class="stage-row total-row">
+    <div class="stage-label">合計</div>
+    <div class="stage-val">${totalLabel}</div>
+  </div></div>`;
+  result.innerHTML = html;
+
+  // ── 増減ボタン生成 ──
+  const adjCard = document.getElementById('m-adj-card');
+  const adjRows = document.getElementById('m-adj-rows');
+  let adjHtml = '';
+  [...stageInfo].reverse().forEach(({ idx, stuCount: sc, parCount: pc }) => {
+    const stuOnly  = sc - (idx === 0 ? staffCnt : 0);
+    const curStu   = mAdjustments[idx]    || 0;
+    const curPar   = mParAdjustments[idx] || 0;
+    const hasPar   = pc > 0 || parentCount > 0;
+
+    adjHtml += `<div class="adj-row" style="flex-direction:column;align-items:stretch;gap:0.4rem;">
+      <div style="font-size:0.8rem;font-weight:500;margin-bottom:0.1rem;">${idx+1}段目</div>`;
+
+    // 生徒行
+    if (stuOnly >= 0) {
+      adjHtml += `<div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.72rem;color:var(--red);">生徒 ${stuOnly}名</div>
+        <div class="adj-ctrl">
+          <button class="adj-btn red" onclick="mAdjust(${idx},-1)">－</button>
+          <div class="adj-val" style="color:var(--red);">${curStu >= 0 ? '+'+curStu : curStu}</div>
+          <button class="adj-btn red" onclick="mAdjust(${idx},1)">＋</button>
+        </div>
+      </div>`;
+    }
+
+    // 空き行（2段目 かつ 先生の後ろを開けるONの場合）
+    if (idx === 1 && noStudentBehind && staffCnt > 0) {
+      adjHtml += `<div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.72rem;color:var(--blue);">空き ${mEmptyAdjust}個</div>
+        <div class="adj-ctrl">
+          <button class="adj-btn" style="border-color:var(--blue);color:var(--blue);" onclick="mAdjustEmpty(-1)">－</button>
+          <div class="adj-val" style="color:var(--blue);">${mEmptyAdjust}</div>
+          <button class="adj-btn" style="border-color:var(--blue);color:var(--blue);" onclick="mAdjustEmpty(1)">＋</button>
+        </div>
+      </div>`;
+    }
+
+    // 保護者行（保護者がいる段のみ）
+    if (idx >= 1 && hasPar) {
+      adjHtml += `<div style="display:flex;align-items:center;justify-content:space-between;">
+        <div style="font-size:0.72rem;color:#333;">保護者 ${pc}名</div>
+        <div class="adj-ctrl">
+          <button class="adj-btn" onclick="mAdjustPar(${idx},-1)">－</button>
+          <div class="adj-val">${curPar >= 0 ? '+'+curPar : curPar}</div>
+          <button class="adj-btn" onclick="mAdjustPar(${idx},1)">＋</button>
+        </div>
+      </div>`;
+    }
+
+    adjHtml += `</div>`;
+  });
+  adjRows.innerHTML = adjHtml;
+  adjCard.style.display = '';
+
+  // ── 座席グリッド生成 ──
+  const gridCard   = document.getElementById('m-grid-card');
+  const gridEl     = document.getElementById('m-seat-grid');
+  const gridScaler = document.getElementById('m-grid-scaler');
+  const gridOuter  = document.getElementById('m-grid-outer');
+  const noStudentBehind = document.getElementById('m-no-behind').checked;
+
+  const staffLabels = Array.from({length: staffCnt}, (_, i) => String.fromCharCode(65 + i % 26));
+  const stu1st  = stageInfo[0].stuCount - staffCnt;
+  const staffArr = staffLabels.map(() => ({ t:'stf' }));
+  let frontSeats = Array.from({length: Math.max(0,stu1st)}, () => ({ t:'stu' }));
+  let frontRow = [];
+  if      (mStaffPos === 'left')  frontRow = [...staffArr, ...frontSeats];
+  else if (mStaffPos === 'right') frontRow = [...frontSeats, ...staffArr];
+  else if (mStaffPos === 'sides') {
+    const lc = Math.ceil(staffCnt / 2);
+    frontRow = [...staffArr.slice(0,lc), ...frontSeats, ...staffArr.slice(lc)];
+  } else {
+    const mid = Math.floor(frontSeats.length / 2);
+    frontRow = [...frontSeats.slice(0,mid), ...staffArr, ...frontSeats.slice(mid)];
+  }
+
+  let gridHtml = '';
+  for (let i = stageInfo.length - 1; i >= 0; i--) {
+    const { idx, stuCount: sc, parCount: pc } = stageInfo[i];
+    let rowSeats = [];
+    if (idx === 0) {
+      rowSeats = frontRow;
+    } else if (idx === 1 && noStudentBehind && staffCnt > 0) {
+      const parLeft  = Math.ceil(pc / 2), parRight = pc - parLeft;
+      const leftStu  = Math.floor(sc / 2), rightStu = sc - leftStu;
+      rowSeats = [...Array(parLeft).fill({t:'par'}), ...Array(leftStu).fill({t:'stu'}), ...Array(mEmptyAdjust).fill({t:'emp'}), ...Array(rightStu).fill({t:'stu'}), ...Array(parRight).fill({t:'par'})];
+    } else {
+      const parLeft  = Math.ceil(pc / 2), parRight = pc - parLeft;
+      rowSeats = [...Array(parLeft).fill({t:'par'}), ...Array(sc).fill({t:'stu'}), ...Array(parRight).fill({t:'par'})];
+    }
+    const offsetStyle = idx % 2 === 1 ? ' style="padding-left:13px;"' : '';
+    gridHtml += `<div class="seat-row"${offsetStyle}>${rowSeats.map(s =>
+      `<div class="seat ${s.t}">${s.t==='stf'?'職':s.t==='par'?'保':s.t==='emp'?'空':''}</div>`
+    ).join('')}</div>`;
+  }
+  gridEl.innerHTML = gridHtml;
+  gridCard.style.display = '';
+
+  // スケール計算（グリッドを横幅にフィット）
+  requestAnimationFrame(() => {
+    const availW = gridOuter.offsetWidth;
+    const innerW = gridScaler.scrollWidth;
+    if (innerW > availW && availW > 0) {
+      const scale = availW / innerW;
+      gridScaler.style.transform = `scale(${scale})`;
+      gridScaler.style.marginBottom = `${gridScaler.scrollHeight * scale - gridScaler.scrollHeight}px`;
+    } else {
+      gridScaler.style.transform = 'none';
+      gridScaler.style.marginBottom = '0';
+    }
+  });
+
+  sendUsageCount();
+}
+
+// ── 利用カウント送信（Supabase） ──
+const SUPABASE_URL = 'https://uidhhufcgmpicubawhgj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpZGhodWZjZ21waWN1YmF3aGdqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM5NTU5MjgsImV4cCI6MjA4OTUzMTkyOH0.V4h3ugYcSt5uqtcg3oNYt4XLcNDWcvyIFsHWEsxCCZk';
+let _lastSentAt = 0;
+
+async function sendUsageCount() {
+  const now = Date.now();
+  if (now - _lastSentAt < 3000) return;
+  _lastSentAt = now;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/usage_log`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Prefer': 'return=minimal'
+      },
+      body: '{}'
+    });
+  } catch(e) {}
+}
+
+// ── ひな壇計算 ──
+class HinadanCalculator {
+  constructor(stages = 1) {
+    this.CAPACITY = { ADULT: 2 };
+    this.STAGES = stages;
+  }
+  calculate(totalPeople) {
+    const perBoard  = 2;
+    const perCol    = perBoard * this.STAGES;
+    const reqBoards = Math.ceil(totalPeople / perCol);
+    const reqStands = Math.ceil((reqBoards + 1) / 2);
+    const actBoards = (reqStands * 2) - 1;
+    return { stands: reqStands, boardsPerStage: actBoards, totalBoards: actBoards * this.STAGES, maxCapacity: actBoards * perCol };
+  }
+  fromStands(stands) {
+    const boards = (stands * 2) - 1;
+    return { stands, boardsPerStage: boards, totalBoards: boards * this.STAGES, maxCapacity: boards * 2 * this.STAGES };
+  }
+}
+
+function mChip(label, val) {
+  return `<div class="hina-chip"><div class="chip-label">${label}</div><div class="chip-val">${val}</div></div>`;
+}
+
+function mCalcH1a() {
+  const p = parseInt(document.getElementById('m-h1a-people').value) || 0;
+  const s = parseInt(document.getElementById('m-h1a-stands').value) || 0;
+  document.getElementById('m-h1a-people-result').innerHTML = p > 0 ? (() => { const r = new HinadanCalculator(1).calculate(p); return mChip('板/段',r.boardsPerStage+'枚')+mChip('脚',r.stands+'脚')+mChip('最大',r.maxCapacity+'人'); })() : '';
+  document.getElementById('m-h1a-stands-result').innerHTML = s > 0 ? (() => { const r = new HinadanCalculator(1).fromStands(s); return mChip('板/段',r.boardsPerStage+'枚')+mChip('最大',r.maxCapacity+'人'); })() : '';
+  mUpdateTotal();
+}
+function mCalcH1b() {
+  const p = parseInt(document.getElementById('m-h1b-people').value) || 0;
+  const s = parseInt(document.getElementById('m-h1b-stands').value) || 0;
+  document.getElementById('m-h1b-people-result').innerHTML = p > 0 ? (() => { const r = new HinadanCalculator(1).calculate(p); return mChip('板/段',r.boardsPerStage+'枚')+mChip('脚',r.stands+'脚')+mChip('最大',r.maxCapacity+'人'); })() : '';
+  document.getElementById('m-h1b-stands-result').innerHTML = s > 0 ? (() => { const r = new HinadanCalculator(1).fromStands(s); return mChip('板/段',r.boardsPerStage+'枚')+mChip('最大',r.maxCapacity+'人'); })() : '';
+  mUpdateTotal();
+}
+function mCalcH2a() {
+  const p = parseInt(document.getElementById('m-h2a-people').value) || 0;
+  const s = parseInt(document.getElementById('m-h2a-stands').value) || 0;
+  document.getElementById('m-h2a-people-result').innerHTML = p > 0 ? (() => { const r = new HinadanCalculator(2).calculate(p); return mChip('板/段',r.boardsPerStage+'枚')+mChip('合計',r.totalBoards+'枚')+mChip('脚',r.stands+'脚')+mChip('最大',r.maxCapacity+'人'); })() : '';
+  document.getElementById('m-h2a-stands-result').innerHTML = s > 0 ? (() => { const r = new HinadanCalculator(2).fromStands(s); return mChip('板/段',r.boardsPerStage+'枚')+mChip('合計',r.totalBoards+'枚')+mChip('最大',r.maxCapacity+'人'); })() : '';
+  mUpdateTotal();
+}
+function mCalcH2b() {
+  const p = parseInt(document.getElementById('m-h2b-people').value) || 0;
+  const s = parseInt(document.getElementById('m-h2b-stands').value) || 0;
+  document.getElementById('m-h2b-people-result').innerHTML = p > 0 ? (() => { const r = new HinadanCalculator(2).calculate(p); return mChip('板/段',r.boardsPerStage+'枚')+mChip('合計',r.totalBoards+'枚')+mChip('脚',r.stands+'脚')+mChip('最大',r.maxCapacity+'人'); })() : '';
+  document.getElementById('m-h2b-stands-result').innerHTML = s > 0 ? (() => { const r = new HinadanCalculator(2).fromStands(s); return mChip('板/段',r.boardsPerStage+'枚')+mChip('合計',r.totalBoards+'枚')+mChip('最大',r.maxCapacity+'人'); })() : '';
+  mUpdateTotal();
+}
+function mCalcH3() {
+  const p = parseInt(document.getElementById('m-h3-people').value) || 0;
+  const s = parseInt(document.getElementById('m-h3-stands').value) || 0;
+  document.getElementById('m-h3-people-result').innerHTML = p > 0 ? (() => { const r = new HinadanCalculator(3).calculate(p); return mChip('板/段',r.boardsPerStage+'枚')+mChip('合計',r.totalBoards+'枚')+mChip('脚',r.stands+'脚')+mChip('追加枠',(r.stands*2)+'枠')+mChip('最大',r.maxCapacity+'人'); })() : '';
+  document.getElementById('m-h3-stands-result').innerHTML = s > 0 ? (() => { const r = new HinadanCalculator(3).fromStands(s); return mChip('板/段',r.boardsPerStage+'枚')+mChip('合計',r.totalBoards+'枚')+mChip('追加枠',(s*2)+'枠')+mChip('最大',r.maxCapacity+'人'); })() : '';
+  mUpdateTotal();
+}
+
+function mUpdateTotal() {
+  let s1=0,b1=0, s2=0,b2=0, s3=0,b3=0;
+  [['m-h1a',1],['m-h1b',1]].forEach(([id,st]) => {
+    const p=parseInt(document.getElementById(id+'-people').value)||0;
+    const s=parseInt(document.getElementById(id+'-stands').value)||0;
+    if(p>0){const r=new HinadanCalculator(st).calculate(p);s1+=r.stands;b1+=r.totalBoards;}
+    else if(s>0){const r=new HinadanCalculator(st).fromStands(s);s1+=s;b1+=r.totalBoards;}
+  });
+  [['m-h2a',2],['m-h2b',2]].forEach(([id,st]) => {
+    const p=parseInt(document.getElementById(id+'-people').value)||0;
+    const s=parseInt(document.getElementById(id+'-stands').value)||0;
+    if(p>0){const r=new HinadanCalculator(st).calculate(p);s2+=r.stands;b2+=r.totalBoards;}
+    else if(s>0){const r=new HinadanCalculator(st).fromStands(s);s2+=s;b2+=r.totalBoards;}
+  });
+  const p3=parseInt(document.getElementById('m-h3-people').value)||0;
+  const s3v=parseInt(document.getElementById('m-h3-stands').value)||0;
+  if(p3>0){const r=new HinadanCalculator(3).calculate(p3);s3=r.stands;b3=r.totalBoards;}
+  else if(s3v>0){const r=new HinadanCalculator(3).fromStands(s3v);s3=s3v;b3=r.totalBoards;}
+
+  const totalChips = document.getElementById('m-total-chips');
+  let html = '';
+  if(s1>0) html += `<div class="total-chip red"><div class="tc-label">1段</div><div class="tc-val">${s1}脚<br><span style="font-size:0.85rem">${b1}枚</span></div></div>`;
+  if(s2>0) html += `<div class="total-chip blue"><div class="tc-label">2段</div><div class="tc-val">${s2}脚<br><span style="font-size:0.85rem">${b2}枚</span></div></div>`;
+  if(s3>0) html += `<div class="total-chip green"><div class="tc-label">3段</div><div class="tc-val">${s3}脚<br><span style="font-size:0.85rem">${b3}枚</span><br><span style="font-size:0.75rem">追加枠${s3*2}枠</span></div></div>`;
+  const sAll=s1+s2+s3, bAll=b1+b2+b3;
+  if(sAll>0) html += `<div class="total-chip dark"><div class="tc-label">合計</div><div class="tc-val">${sAll}脚<br><span style="font-size:0.85rem">${bAll}枚</span></div></div>`;
+  totalChips.innerHTML = html || `<div class="total-chip dark"><div class="tc-label">入力してください</div><div class="tc-val">—</div></div>`;
+}
+</script>
+</body>
+</html>
