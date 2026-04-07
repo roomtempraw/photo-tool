@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>集合写真人数配置ツール ver4.91 2026-03-20</title>
+<title>集合写真人数配置ツール ver5.0 2026-04-07</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Noto+Sans+JP:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
@@ -289,7 +289,7 @@
 <body>
 
 <header>
-  <h1>集合写真人数配置ツール ver4.91 2026-03-20</h1>
+  <h1>集合写真人数配置ツール ver5.0 2026-04-07</h1>
   <div style="margin-left:auto;font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);text-align:right;line-height:1.6;white-space:nowrap;">
     <div style="font-size:0.62rem;color:var(--muted);margin-bottom:0.2rem;">入力データはサーバーに送信されず、ブラウザ内のみで処理されます。</div>
     <div style="font-size:0.62rem;color:var(--muted);margin-bottom:0.2rem;">本ツールの使用により生じた損害について、作者は一切の責任を負いません。自己責任でご利用ください。</div>
@@ -357,6 +357,7 @@
       <label>保護者</label>
       <div style="display:flex;gap:0.4rem;flex-wrap:wrap;">
         <button class="pos-btn active" data-pmode="auto"   onclick="selectPmode(this)">1.5倍自動</button>
+        <button class="pos-btn"        data-pmode="double" onclick="selectPmode(this)">2倍自動</button>
         <button class="pos-btn"        data-pmode="manual" onclick="selectPmode(this)">人数指定</button>
         <button class="pos-btn"        data-pmode="none"   onclick="selectPmode(this)">なし</button>
       </div>
@@ -480,9 +481,13 @@ const POSE_OPTIONS = {
   'stage_stand' : { label:'ステージに立つ',         floorH:60,  sit:false, platform:{type:'stage'} },
   // ---- 6段目用 ----
   'hina3_stand6': { label:'ひな壇3段に立つ',       floorH:90,  sit:false, platform:{type:'hina', steps:3} },
+  'stage_stand6': { label:'ステージに立つ',         floorH:60,  sit:false, platform:{type:'stage'} },
   'stage_hina1' : { label:'ステージ上ひな壇1段',   floorH:90,  sit:false, platform:{type:'stage_hina', steps:1} },
   // ---- 7段目用 ----
+  'stage_hina1_7': { label:'ステージ上ひな壇1段',  floorH:90,  sit:false, platform:{type:'stage_hina', steps:1} },
   'stage_hina2' : { label:'ステージ上ひな壇2段',   floorH:120, sit:false, platform:{type:'stage_hina', steps:2} },
+  // ---- 8段目用 ----
+  'stage_hina2_8': { label:'ステージ上ひな壇2段',  floorH:120, sit:false, platform:{type:'stage_hina', steps:2} },
 };
 
 // 各段に表示する選択肢
@@ -492,8 +497,9 @@ const ROW_OPTIONS = [
   { label:'3段目', choices:['stand3','hina1_stand3'],                                  default:'hina1_stand3'},
   { label:'4段目', choices:['hina1_stand4','hina2_stand'],                             default:'hina2_stand' },
   { label:'5段目', choices:['hina2_stand5','hina3_stand','stage_stand'],               default:'stage_stand' },
-  { label:'6段目', choices:['hina3_stand6','stage_hina1'],                            default:'stage_hina1' },
-  { label:'7段目', choices:['stage_hina2'],                                            default:'stage_hina2' },
+  { label:'6段目', choices:['hina3_stand6','stage_stand6','stage_hina1'],              default:'stage_hina1' },
+  { label:'7段目', choices:['stage_hina1_7','stage_hina2'],                            default:'stage_hina2' },
+  { label:'8段目', choices:['stage_hina2_8'],                                          default:'stage_hina2_8'},
 ];
 
 // 現在の段数と各段の選択状態
@@ -546,7 +552,7 @@ function buildPoseSelectors() {
 }
 
 function changeDiagRows(delta) {
-  diagramRowCount = Math.max(1, Math.min(7, diagramRowCount + delta));
+  diagramRowCount = Math.max(1, Math.min(8, diagramRowCount + delta));
   document.getElementById('diag-row-count').textContent = diagramRowCount;
   buildPoseSelectors();
   drawDiagram();
@@ -1031,6 +1037,7 @@ drawDiagram();
     if (studentCount <= 0) return null;
     let pc = 0;
     if      (parentMode === 'auto')   pc = Math.ceil(studentCount * 1.5);
+    else if (parentMode === 'double') pc = studentCount * 2;
     else if (parentMode === 'manual') pc = Math.max(0, parseInt(document.getElementById('parentInput').value) || 0);
     const sps = studentCount + sc;
     const gt  = sps + pc;
@@ -1093,6 +1100,7 @@ drawDiagram();
 
     let parentCount = 0;
     if      (parentMode === 'auto')   parentCount = Math.ceil(studentCount * 1.5);
+    else if (parentMode === 'double') parentCount = studentCount * 2;
     else if (parentMode === 'manual') parentCount = Math.max(0, parseInt(document.getElementById('parentInput').value) || 0);
 
     const studentPlusStaff = studentCount + staffCount;
@@ -2045,6 +2053,7 @@ drawDiagram();
     const sc = Math.max(0, parseInt(document.getElementById('staffInput').value) || 0);
     let parentCount = 0;
     if      (parentMode === 'auto')   parentCount = Math.ceil(studentCount * 1.5);
+    else if (parentMode === 'double') parentCount = studentCount * 2;
     else if (parentMode === 'manual') parentCount = Math.max(0, parseInt(document.getElementById('parentInput').value) || 0);
 
     const studentPlusStaff = studentCount + sc;
